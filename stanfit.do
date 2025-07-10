@@ -1,7 +1,7 @@
 /*
 
 Stata Stan
-Version 16.0
+Version 17.0
 rcstan 0.2.3
 last modified: 06/17/2025
 Author: Brian Albert Monroe
@@ -45,6 +45,7 @@ CHANGELOG
 Version 16: Added a program to stanfit.do to call the mcmc_diag function again from stata
 
 */
+
 // This program generates the bat file for use with windows
 capture program drop gen_bat
 program define gen_bat
@@ -70,8 +71,11 @@ program define gen_bat
     file close `fp'
 end
 
-// This program downloads the necessary libraries into a local R_library. It will also update an already existing R_library.
-program define update_R
+// This sets the globals to run the tempfiles made for various commands
+capture program drop set_R_cmd
+program define set_R_cmd
+
+	args fit_file
 
 	if "$RPATH" != "" {
 		local rcmd = "$RPATH"
@@ -101,6 +105,16 @@ program define update_R
 			local scmd = "shell"
 		}
 	}
+
+	// Escape all quotes carefully
+	global Rshell "`scmd' `rcmd' -e"
+	global Rcmd "fp <- file('R_runner.log', open = 'wt'); sink(fp); sink(fp, type = 'message'); source('`fit_file'', echo = TRUE); sink(type = 'message'); sink()"
+
+end
+
+// This program downloads the necessary libraries into a local R_library. It will also update an already existing R_library.
+capture program drop update_R
+program define update_R
 
 	capture mkdir "R_library"
 
@@ -134,22 +148,23 @@ program define update_R
 	// Reinstall rcstan package
 	`writer' "install.packages(c('rcstan'), lib = libdir)" _n
 	// There's a Sleep command here just so it stays open for a bit
-	`writer' "Sys.sleep(3)" _n
+	`writer' "Sys.sleep(15)" _n
 
 	file close `fp'
 
-	// Update the local library
-	`scmd' `rcmd' "`fit_file'"
+	// Create the Rshell and Rcmd globals
+	set_R_cmd `fit_file'
+	// Now run the local file
+	$Rshell "$Rcmd"
 
 	capture rm "`fit_file'"
 
 end
 
 // This program rank orders lotteries for use with RDU code. This is potentially something that ought to be done in Stan in the generated data block
+capture program drop rankinst
 program define rankinst
-
 qui {
-
 	// I guess this is a factorial sort. It will always take (`nouts' - 1)! steps. It's
 	// faster than quicksort for `nouts' < 5, and I didn't feel like programming
 	// quicksort.
@@ -202,13 +217,13 @@ qui {
 	replace Max  = 0.01 if Max == 0
 	replace Min  = 0.01 if Min == 0
 	}
-
 end
 
 
 // Be very very careful what you put into your globals. These values are sent
 // directly to the shell and can cause damage if you deviate from the
 // prescribed templates
+capture program drop stanfit
 program define stanfit
 
 	// Rank-order the data
@@ -223,35 +238,6 @@ program define stanfit
 
 	// Save an appropriate dataset
 	save `input', replace
-
-	if "$RPATH" != "" {
-		local rcmd = "$RPATH"
-	}
-	else if c(os) == "MacOSX" {
-		local rcmd = "/Library/Frameworks/R.framework/Resources/bin/R --vanilla -q"
-	}
-	else if c(os) == "Windows" {
-		// Generate the batch file
-		gen_bat
-		local rcmd = "R_script.bat"
-	}
-	else {
-		local rcmd = "R --vanilla -q"
-	}
-
-	if "$use_inshell" == "yes" {
-		capture which inshell
-		if _rc==111 ssc install inshell
-		local scmd = "inshell"
-	}
-	else {
-		if c(os) == "Windows" {
-			local scmd = "shell start"
-		}
-		else {
-			local scmd = "shell"
-		}
-	}
 
 	local diag "FALSE"
 	if "$do_diagnostics" == "yes" | "$do_diagnostics" == "TRUE" {
@@ -296,7 +282,10 @@ program define stanfit
 
 	file close `fp'
 
-	`scmd' `rcmd' -e "fp <- file('R_runner.log', open = 'wt'); sink(fp); sink(fp, type = 'message'); source('`fit_file'', echo = TRUE); sink(type = 'message') ; sink()"
+	// Create the Rshell and Rcmd globals
+	set_R_cmd `fit_file'
+	// Now run the local file
+	$Rshell "$Rcmd"
 
 	capture rm "`fit_file'"
 
@@ -309,39 +298,10 @@ program define stanfit
 
 end
 
+capture program drop stan_diagnostics
 program define stan_diagnostics
-
 	// The file name for the model
 	local fname "'$model.Rda'"
-
-	if "$RPATH" != "" {
-		local rcmd = "$RPATH"
-	}
-	else if c(os) == "MacOSX" {
-		local rcmd = "/Library/Frameworks/R.framework/Resources/bin/R --vanilla -q"
-	}
-	else if c(os) == "Windows" {
-		// Generate the batch file
-		gen_bat
-		local rcmd = "R_script.bat"
-	}
-	else {
-		local rcmd = "R --vanilla -q"
-	}
-
-	if "$use_inshell" == "yes" {
-		capture which inshell
-		if _rc==111 ssc install inshell
-		local scmd = "inshell"
-	}
-	else {
-		if c(os) == "Windows" {
-			local scmd = "shell start"
-		}
-		else {
-			local scmd = "shell"
-		}
-	}
 
 	// Shell out to R to do the posterior fitting
 	tempname fp
@@ -357,8 +317,10 @@ program define stan_diagnostics
 
 	file close `fp'
 
-	`scmd' `rcmd' -e "fp <- file('R_runner.log', open = 'wt'); sink(fp); sink(fp, type = 'message'); source('`fit_file'', echo = TRUE); sink(type = 'message') ; sink()"
+	// Create the Rshell and Rcmd globals
+	set_R_cmd `fit_file'
+	// Now run the local file
+	$Rshell "$Rcmd"
 
 	capture rm "`fit_file'"
-
 end
