@@ -82,7 +82,7 @@ program define set_R_cmd
 		local rcmd = "$RPATH"
 	}
 	else if c(os) == "MacOSX" {
-		local rcmd = "/Library/Frameworks/R.framework/Resources/bin/R --vanilla -q -f"
+		local rcmd = "/Library/Frameworks/R.framework/Resources/bin/R --vanilla -q"
 	}
 	else if c(os) == "Windows" {
 		// Generate the batch file
@@ -90,7 +90,7 @@ program define set_R_cmd
 		local rcmd = "R_script.bat"
 	}
 	else {
-		local rcmd = "R --vanilla -q -f"
+		local rcmd = "R --vanilla -q"
 	}
 
 	if "$use_inshell" == "yes" {
