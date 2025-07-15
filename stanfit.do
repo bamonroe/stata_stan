@@ -3,7 +3,7 @@
 Stata Stan
 Version 17.0
 rcstan 0.2.3
-last modified: 06/17/2025
+last modified: 07/15/2025
 Author: Brian Albert Monroe
 Email:  bmonroe3@gsu.edu
 
@@ -42,6 +42,7 @@ The default below epects a local portable version of R in the same directory as 
 
 CHANGELOG
 
+Version 17: Added set_R_cmd program to standardize the calls to R over all the other programs
 Version 16: Added a program to stanfit.do to call the mcmc_diag function again from stata
 
 */
