@@ -1,9 +1,9 @@
 /*
 
 Stata Stan
-Version 17.0
+Version 18.0
 rcstan 0.2.3
-last modified: 07/15/2025
+last modified: 08/06/2025
 Author: Brian Albert Monroe
 Email:  bmonroe3@gsu.edu
 
@@ -22,7 +22,7 @@ if "$update" == "yes" {
 }
 
 
-To have Stata Stan run a Stan model, the following globals are required:
+To have Stata Stan run a Stan model, the following globals need to be set, the values below are just examples:
 
 global do_diagnostics "yes"      // "yes" to generate MCMC diagnostics
 global use_inshell    "no"       // "yes" to download and use the "inshell" ado to run the code
@@ -42,6 +42,7 @@ The default below epects a local portable version of R in the same directory as 
 
 CHANGELOG
 
+Version 18: Added the ability to set stanopt_* globals which pass arbitrary options to the stan command in R
 Version 17: Added set_R_cmd program to standardize the calls to R over all the other programs
 Version 16: Added a program to stanfit.do to call the mcmc_diag function again from stata
 
