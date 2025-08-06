@@ -263,6 +263,30 @@ program define stanfit
 		local extra_vars "'$extra_vars'"
 	}
 
+	// Set Stan options that we want defaults for, and for which we do require the
+	// stanopt_ prefix
+	local chains_default = 2
+	local iter_default = 10000
+	local warmup_default = `iter_default' / 2
+
+	foreach stanopt in chains warmup iter {
+		if "${`stanopt'}" != "" {
+			global stanopt_`stanopt' "${`stanopt'}"
+		}
+		else if "``stanopt'_default'" != "" {
+			global stanopt_`stanopt' "``stanopt'_default'"
+		}
+	}
+
+	// Generate the stan_opts local by finding all globals with the stanopt_* prefix
+	local stan_opts "list("
+	local names : all globals "stanopt*"
+	foreach line in `names' {
+		local opt = substr("`line'", 9, .)
+		local stan_opts "`stan_opts'`opt' = ${stanopt_`opt'}, "
+	}
+	local stan_opts = substr("`stan_opts'", 1, strlen("`stan_opts'") - 2)
+	local stan_opts "`stan_opts')"
 
 	// Shell out to R to do the posterior fitting
 	tempname fp
@@ -278,7 +302,7 @@ program define stanfit
 	`writer' "  covars     = `covars'," _n
 	`writer' "  diag       = `diag'," _n
 	`writer' "  extra_vars = `extra_vars'," _n
-	`writer' "  stan_opts  = list(chains = $chains, warmup = $warmup, iter = $iter)" _n
+	`writer' "  stan_opts  = `stan_opts'" _n
 	`writer' ")" _n
 
 	file close `fp'
