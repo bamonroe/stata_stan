@@ -1,9 +1,9 @@
 /*
 
 Stata Stan
-Version 18.0
+Version 19.0
 rcstan 0.2.3
-last modified: 08/06/2025
+last modified: 08/11/2025
 Author: Brian Albert Monroe
 Email:  bmonroe3@gsu.edu
 
@@ -32,8 +32,10 @@ global warmup  5000              // the number of warmup iterations
 global iter    15000             // the TOTAL number of iterations, INCLUSIVE of warmup
 
 Optional globals, can be blank or omitted if you want to disregard them:
-global covars      ""  // covariates for the hyper parameters, see a template with covariates
-global extra_vars  ""  // extra variables from the Stata dataset that are passed into a extra_vars data block in stan
+global covars      ""   // covariates for the hyper parameters, see a template with covariates
+global extra_vars  ""   // extra variables from the Stata dataset that are passed into a extra_vars data block in stan
+global stanopt_*        // arbitrary options can be passed to the stan command by filling in the suffix with the name of the option
+                        // be warned that this only works well for values that don't need to be quoted
 
 IF USING WINDOWS:
 Make sure that the path to R_HOME in the gen_bat program below points to your R installation.
@@ -42,6 +44,7 @@ The default below epects a local portable version of R in the same directory as 
 
 CHANGELOG
 
+Version 19: Automatically count the number of outcomes, assuming that there are the same number of outcomes in each option
 Version 18: Added the ability to set stanopt_* globals which pass arbitrary options to the stan command in R
 Version 17: Added set_R_cmd program to standardize the calls to R over all the other programs
 Version 16: Added a program to stanfit.do to call the mcmc_diag function again from stata
@@ -163,14 +166,22 @@ program define update_R
 
 end
 
-// This program rank orders lotteries for use with RDU code. This is potentially something that ought to be done in Stan in the generated data block
+// This program rank orders lotteries for use with RDU code. This is
+// potentially something that ought to be done in Stan in the generated data
+// block
 capture program drop rankinst
 program define rankinst
 qui {
-	// I guess this is a factorial sort. It will always take (`nouts' - 1)! steps. It's
-	// faster than quicksort for `nouts' < 5, and I didn't feel like programming
-	// quicksort.
-	local nouts 4
+
+	// I guess this is a factorial sort. It will always take (`nouts' - 1)!
+	// steps. It's faster than quicksort for `nouts' < 5, and I didn't feel like
+	// programming quicksort. In any case, this is a one time operation. The
+	// compute time to rank is negligible compared to the time to estimate.
+
+	local nouts = 0
+	foreach vname of varlist opt1_out*  {
+		local nouts = `nouts' + 1
+	}
 
 	// Create a couple marker variables to keep track of the currently best
 	// outcome
@@ -181,6 +192,7 @@ qui {
 	generate double `m2' = 0
 	generate double `p2' = 0
 
+	// Still only allowing 2 options
 	forvalues opt = 1/2 {
 		local bottom 2
 		while `bottom' <= `nouts' {
