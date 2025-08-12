@@ -1,9 +1,9 @@
 /*
 
 Stata Stan
-Version 19.0
-rcstan 0.2.3
-last modified: 08/11/2025
+Version 19.1
+rcstan 0.3.1
+last modified: 08/12/2025
 Author: Brian Albert Monroe
 Email:  bmonroe3@gsu.edu
 
@@ -44,10 +44,11 @@ The default below epects a local portable version of R in the same directory as 
 
 CHANGELOG
 
-Version 19: Automatically count the number of outcomes, assuming that there are the same number of outcomes in each option
-Version 18: Added the ability to set stanopt_* globals which pass arbitrary options to the stan command in R
-Version 17: Added set_R_cmd program to standardize the calls to R over all the other programs
-Version 16: Added a program to stanfit.do to call the mcmc_diag function again from stata
+Version 19.1: Update the required rcstan version
+Version 19.0: Automatically count the number of outcomes, assuming that there are the same number of outcomes in each option
+Version 18.0: Added the ability to set stanopt_* globals which pass arbitrary options to the stan command in R
+Version 17.0: Added set_R_cmd program to standardize the calls to R over all the other programs
+Version 16.0: Added a program to stanfit.do to call the mcmc_diag function again from stata
 
 */
 
