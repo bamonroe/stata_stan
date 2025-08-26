@@ -1,9 +1,9 @@
 /*
 
 Stata Stan
-Version 19.1
-rcstan 0.3.1
-last modified: 08/12/2025
+Version 20.0
+rcstan 0.3.3
+last modified: 08/26/2025
 Author: Brian Albert Monroe
 Email:  bmonroe3@gsu.edu
 
@@ -44,6 +44,7 @@ The default below epects a local portable version of R in the same directory as 
 
 CHANGELOG
 
+Version 20.0: Update the required rcstan version
 Version 19.1: Update the required rcstan version
 Version 19.0: Automatically count the number of outcomes, assuming that there are the same number of outcomes in each option
 Version 18.0: Added the ability to set stanopt_* globals which pass arbitrary options to the stan command in R
