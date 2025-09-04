@@ -1,9 +1,9 @@
 /*
 
 Stata Stan
-Version 20.0
+Version 20.1
 rcstan 0.3.3
-last modified: 08/26/2025
+last modified: 09/04/2025
 Author: Brian Albert Monroe
 Email:  bmonroe3@gsu.edu
 
@@ -44,6 +44,7 @@ The default below epects a local portable version of R in the same directory as 
 
 CHANGELOG
 
+Version 20.1: Allow the log file to be specified
 Version 20.0: Update the required rcstan version
 Version 19.1: Update the required rcstan version
 Version 19.0: Automatically count the number of outcomes, assuming that there are the same number of outcomes in each option
@@ -82,7 +83,7 @@ end
 capture program drop set_R_cmd
 program define set_R_cmd
 
-	args fit_file
+	args fit_file r_runner
 
 	if "$RPATH" != "" {
 		local rcmd = "$RPATH"
@@ -113,9 +114,22 @@ program define set_R_cmd
 		}
 	}
 
+	// We allow optional specifying the logfile for this part
+	// Internally to stanfit.do we default the update_r log to something other than
+	// the log file that logs the regular runs
+	if "`r_runner'" == "" {
+		if "$sstan_R_runner" == "" {
+			local r_runner "R_runner.log"
+		}
+		else {
+			local r_runner "$sstan_R_runner"
+		}
+	}
+
+
 	// Escape all quotes carefully
 	global Rshell "`scmd' `rcmd' -e"
-	global Rcmd "fp <- file('R_runner.log', open = 'wt'); sink(fp); sink(fp, type = 'message'); source('`fit_file'', echo = TRUE); sink(type = 'message'); sink()"
+	global Rcmd "fp <- file('`r_runner'', open = 'wt'); sink(fp); sink(fp, type = 'message'); source('`fit_file'', echo = TRUE); sink(type = 'message'); sink()"
 
 end
 
@@ -160,7 +174,7 @@ program define update_R
 	file close `fp'
 
 	// Create the Rshell and Rcmd globals
-	set_R_cmd `fit_file'
+	set_R_cmd `fit_file' "update_R.log"
 	// Now run the local file
 	$Rshell "$Rcmd"
 
@@ -358,7 +372,7 @@ program define stan_diagnostics
 	file close `fp'
 
 	// Create the Rshell and Rcmd globals
-	set_R_cmd `fit_file'
+	set_R_cmd `fit_file' "diagnostics.log"
 	// Now run the local file
 	$Rshell "$Rcmd"
 
