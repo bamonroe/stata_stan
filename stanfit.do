@@ -1,9 +1,9 @@
 /*
 
 Stata Stan
-Version 20.1
+Version 21.0
 rcstan 0.3.3
-last modified: 09/04/2025
+last modified: 10/25/2025
 Author: Brian Albert Monroe
 Email:  bmonroe3@gsu.edu
 
@@ -44,6 +44,7 @@ The default below epects a local portable version of R in the same directory as 
 
 CHANGELOG
 
+Version 21.0: Remove Rankinst - this is now on the user to get right
 Version 20.1: Allow the log file to be specified
 Version 20.0: Update the required rcstan version
 Version 19.1: Update the required rcstan version
@@ -182,82 +183,11 @@ program define update_R
 
 end
 
-// This program rank orders lotteries for use with RDU code. This is
-// potentially something that ought to be done in Stan in the generated data
-// block
-capture program drop rankinst
-program define rankinst
-qui {
-
-	// I guess this is a factorial sort. It will always take (`nouts' - 1)!
-	// steps. It's faster than quicksort for `nouts' < 5, and I didn't feel like
-	// programming quicksort. In any case, this is a one time operation. The
-	// compute time to rank is negligible compared to the time to estimate.
-
-	local nouts = 0
-	foreach vname of varlist opt1_out*  {
-		local nouts = `nouts' + 1
-	}
-
-	// Create a couple marker variables to keep track of the currently best
-	// outcome
-	tempvar m1 p1 m2 p2
-	generate double `m1' = 0
-	generate double `p1' = 0
-
-	generate double `m2' = 0
-	generate double `p2' = 0
-
-	// Still only allowing 2 options
-	forvalues opt = 1/2 {
-		local bottom 2
-		while `bottom' <= `nouts' {
-			forvalues i = `nouts'(-1)`bottom' {
-
-				local j = `i' - 1
-
-				replace `m1' = opt`opt'_out`i'
-				replace `m2' = opt`opt'_out`j'
-				replace `p1' = opt`opt'_prob`i'
-				replace `p2' = opt`opt'_prob`j'
-
-				replace `m1' = opt`opt'_out`j'  if opt`opt'_out`j' > opt`opt'_out`i'
-				replace `m2' = opt`opt'_out`i'  if opt`opt'_out`j' > opt`opt'_out`i'
-				replace `p1' = opt`opt'_prob`j' if opt`opt'_out`j' > opt`opt'_out`i'
-				replace `p2' = opt`opt'_prob`i' if opt`opt'_out`j' > opt`opt'_out`i'
-
-				replace opt`opt'_out`i'  = `m2'
-				replace opt`opt'_out`j'  = `m1'
-				replace opt`opt'_prob`i' = `p2'
-				replace opt`opt'_prob`j' = `p1'
-			}
-			local ++bottom
-		}
-	}
-
-	// Ensure we don't have 0 outcomes or negative probabilities
-	forvalues i = 1/`nouts' {
-		replace opt1_out`i'  = 0.01 if opt1_out`i' == 0
-		replace opt2_out`i'  = 0.01 if opt2_out`i' == 0
-
-		replace opt1_prob`i' = 0 if opt1_prob`i' <= 0
-		replace opt2_prob`i' = 0 if opt2_prob`i' <= 0
-	}
-
-	replace Max  = 0.01 if Max == 0
-	replace Min  = 0.01 if Min == 0
-	}
-end
-
-
 // Be very very careful what you put into your globals. These values are sent
 // directly to the shell and can cause damage if you deviate from the
 // prescribed templates
 capture program drop stanfit
 program define stanfit
-
-	// Rank-order the data
-	rankinst
 
 	// The file name for the model
 	local fname "'$model.stan'"
